@@ -4,12 +4,11 @@ import com.codeborne.selenide.Condition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static com.codeborne.selenide.Selectors.withText;
-import static com.codeborne.selenide.Selenide.$;
-import static com.codeborne.selenide.Selenide.open;
-import static ru.netology.DataGenerator.*;
+import static com.codeborne.selenide.Condition.exactText;
+import static com.codeborne.selenide.Condition.text;
+import static com.codeborne.selenide.Selenide.*;
 
-class AuthTest {
+public class AuthTest {
 
     @BeforeEach
     void setup() {
@@ -17,44 +16,61 @@ class AuthTest {
     }
 
     @Test
-    void shouldLoginActiveUser() {
-        UserInfo user = DataGenerator.Registration.generateUser("active");
-        activeUser(user);
-        $(".input__box>[type='text']").setValue(user.getLogin());
-        $(".input__box>[type='password']").setValue(user.getPassword());
-        $(".button").click();
-        $(withText("Личный кабинет")).shouldBe(Condition.visible);
+    void shouldLogInIfActiveValidUser() {
+        Registration user = Generation.generateNewActiveValidUser();
+        $("[data-test-id='login'] input").setValue(user.getLogin());
+        $("[data-test-id='password'] input").setValue(user.getPassword());
+        $$("button").find(exactText("Продолжить")).click();
+        $("h2").shouldHave(text("Личный кабинет"));
+    }
+    @Test
+    void shouldNotLogInIfBlockedUser() {
+        Registration user = Generation.generateNewBlockedUser();
+        $("[data-test-id='login'] input").setValue(user.getLogin());
+        $("[data-test-id='password'] input").setValue(user.getPassword());
+        $$("button").find(exactText("Продолжить")).click();
+        $("[data-test-id=error-notification] .notification__content").shouldHave(text("Пользователь заблокирован")).waitUntil(Condition.visible, 15000);
     }
 
     @Test
-    void shouldLoginBlockedUser() {
-        UserInfo user = DataGenerator.Registration.generateUser("blocked");
-        blockedUser(user);
-        $(".input__box>[type='text']").setValue(user.getLogin());
-        $(".input__box>[type='password']").setValue(user.getPassword());
-        $(".button").click();
-        $(withText("Пользователь заблокирован")).shouldBe(Condition.visible);
+    void shouldNotLogInIfActiveUserInvalidLogin() {
+        Registration user = Generation.generateNewActiveUserInvalidLogin();
+        $("[data-test-id='login'] input").setValue(user.getLogin());
+        $("[data-test-id='password'] input").setValue(user.getPassword());
+        $$("button").find(exactText("Продолжить")).click();
+        $("[data-test-id=error-notification] .notification__content").shouldHave(text("Неверно указан логин или пароль")).waitUntil(Condition.visible, 15000);
     }
 
     @Test
-    void shouldWrongLogin() {
-        UserInfo user = Registration.generateUser("active");
-        activeUser(user);
-        var anotherLogin = generateLogin();
-        $(".input__box>[type='text']").setValue(anotherLogin);
-        $(".input__box>[type='password']").setValue(user.getPassword());
-        $(".button").click();
-        $(withText("Неверно указан логин или пароль")).shouldBe(Condition.visible);
+    void shouldNotLogInIfActiveUserInvalidPassword() {
+        Registration user = Generation.generateNewActiveInvalidPassword();
+        $("[data-test-id='login'] input").setValue(user.getLogin());
+        $("[data-test-id='password'] input").setValue(user.getPassword());
+        $$("button").find(exactText("Продолжить")).click();
+        $("[data-test-id=error-notification] .notification__content").shouldHave(text("Неверно указан логин или пароль")).waitUntil(Condition.visible, 15000);
     }
 
     @Test
-    void shouldWrongPassword() {
-        UserInfo user = Registration.generateUser("active");
-        activeUser(user);
-        var anotherPassword = generatePassword();
-        $(".input__box>[type='text']").setValue(user.getLogin());
-        $(".input__box>[type='password']").setValue(anotherPassword);
-        $(".button").click();
-        $(withText("Неверно указан логин или пароль")).shouldBe(Condition.visible);
+    void shouldNotLogInIfActiveUserEmptyLogin() {
+        Registration user = Generation.generateNewActiveValidUser();
+        $("[data-test-id='password'] input").setValue(user.getPassword());
+        $$("button").find(exactText("Продолжить")).click();
+        $("[data-test-id='login'] .input__sub").shouldHave(text("Поле обязательно для заполнения")).waitUntil(Condition.visible, 15000);
     }
+
+    @Test
+    void shouldNotLogInIfActiveUserEmptyPassword() {
+        Registration user = Generation.generateNewActiveValidUser();
+        $("[data-test-id='login'] input").setValue(user.getLogin());
+        $$("button").find(exactText("Продолжить")).click();
+        $("[data-test-id='password'] .input__sub").shouldHave(text("Поле обязательно для заполнения")).waitUntil(Condition.visible, 15000);
+    }
+
+    @Test
+    void shouldNotLogInIfActiveUserEmptyLoginAndPassword() {
+        $$("button").find(exactText("Продолжить")).click();
+        $("[data-test-id='login'] .input__sub").shouldHave(text("Поле обязательно для заполнения")).waitUntil(Condition.visible, 15000);
+        $("[data-test-id='password'] .input__sub").shouldHave(text("Поле обязательно для заполнения")).waitUntil(Condition.visible, 15000);
+    }
+
 }
